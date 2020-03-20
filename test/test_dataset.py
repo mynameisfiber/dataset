@@ -454,13 +454,15 @@ class TableTestCase(unittest.TestCase):
         assert tbl.find_one(id=2)['weight'] == W / 2
 
     def test_drop_operations(self):
-        assert self.tbl._table is not None, \
+        tbl = self.db['bar']
+        _ = tbl.table
+        assert tbl._table is not None, \
             'table shouldn\'t be dropped yet'
-        self.tbl.drop()
-        assert self.tbl._table is None, \
+        tbl.drop()
+        assert tbl._table is None, \
             'table should be dropped now'
-        assert list(self.tbl.all()) == [], self.tbl.all()
-        assert self.tbl.count() == 0, self.tbl.count()
+        assert list(tbl.all()) == [], self.tbl.all()
+        assert tbl.count() == 0, self.tbl.count()
 
     def test_table_drop(self):
         assert 'weather' in self.db

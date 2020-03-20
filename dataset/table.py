@@ -1,6 +1,7 @@
 import logging
 import warnings
 import threading
+from functools import wraps
 
 from sqlalchemy.sql import and_, expression
 from sqlalchemy.sql.expression import bindparam, ClauseElement
@@ -17,6 +18,15 @@ from dataset.util import normalize_column_name, normalize_column_key
 
 
 log = logging.getLogger(__name__)
+
+
+def with_transaction(fxn):
+    @wraps(fxn)
+    def _(self, *args, **kwargs):
+        with self.db:
+            result = fxn(self, *args, **kwargs)
+        return result
+    return _
 
 
 class Table(object):
@@ -89,6 +99,7 @@ class Table(object):
         key = normalize_column_key(name)
         return self._column_keys.get(key, name)
 
+    @with_transaction
     def insert(self, row, ensure=None, types=None):
         """Add a ``row`` dict by inserting it into the table.
 
@@ -113,6 +124,7 @@ class Table(object):
             return res.inserted_primary_key[0]
         return True
 
+    @with_transaction
     def insert_ignore(self, row, keys, ensure=None, types=None):
         """Add a ``row`` dict into the table if the row does not exist.
 
@@ -139,6 +151,7 @@ class Table(object):
             return self.insert(row, ensure=False)
         return False
 
+    @with_transaction
     def insert_many(self, rows, chunk_size=1000, ensure=None, types=None):
         """Add many rows at a time.
 
@@ -176,6 +189,7 @@ class Table(object):
                 self.table.insert().execute(chunk)
                 chunk = []
 
+    @with_transaction
     def update(self, row, keys, ensure=None, types=None, return_count=False):
         """Update a row in the table.
 
@@ -205,6 +219,7 @@ class Table(object):
         if return_count:
             return self.count(clause)
 
+    @with_transaction
     def update_many(self, rows, keys, chunk_size=1000, ensure=None,
                     types=None):
         """Update many rows in the table at a time.
@@ -243,6 +258,7 @@ class Table(object):
                 self.db.executable.execute(stmt, chunk)
                 chunk = []
 
+    @with_transaction
     def upsert(self, row, keys, ensure=None, types=None):
         """An UPSERT is a smart combination of insert and update.
 
@@ -261,6 +277,7 @@ class Table(object):
             return self.insert(row, ensure=False)
         return True
 
+    @with_transaction
     def upsert_many(self, rows, keys, chunk_size=1000, ensure=None,
                     types=None):
         """
